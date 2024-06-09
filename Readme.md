@@ -24,6 +24,10 @@ iwdrs = 0.1
 - Add documentation
 - Add tests
 
+## Used in
+
+- [impala](https://github.com/pythops/impala)
+
 ## Resources
 
 - [iwd dbus api](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc)
