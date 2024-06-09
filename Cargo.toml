@@ -1,0 +1,15 @@
+[package]
+name = "iwdrs"
+version = "0.1.0"
+edition = "2021"
+license = "LGPL-2.1"
+description = "Rust bindings for iwd"
+readme = "Readme.md"
+homepage = "https://github.com/pythops/iwdrs"
+repository = "https://github.com/pythops/iwdrs"
+
+[dependencies]
+zbus = "4"
+zvariant = "4"
+anyhow = "1"
+uuid = { version = "1", features = ["v4"] }
