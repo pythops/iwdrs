@@ -1,4 +1,4 @@
-# iwdrs - Rust bindings for iwd
+# iwdrs - Rust crate for iwd
 
 ## Implemented (fully or partially) APIs
 
