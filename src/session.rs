@@ -28,11 +28,10 @@ impl Session {
             "/",
             "org.freedesktop.DBus.ObjectManager",
         )
-        .await
-        .unwrap();
+        .await?;
 
         let objects: HashMap<OwnedObjectPath, HashMap<String, HashMap<String, OwnedValue>>> =
-            proxy.call("GetManagedObjects", &()).await.unwrap();
+            proxy.call("GetManagedObjects", &()).await?;
 
         Ok(Self {
             connection,
