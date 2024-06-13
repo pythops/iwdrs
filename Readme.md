@@ -8,6 +8,7 @@
 - [knownnetwork](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc/knownnetwork-api.txt)
 - [network](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc/network-api.txt)
 - [station](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc/station-api.txt)
+- [access point](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc/access-point-api.txt)
 
 ## Getting started
 
