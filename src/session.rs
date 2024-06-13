@@ -1,17 +1,16 @@
-use anyhow::Result;
-use std::{collections::HashMap, sync::Arc};
-use uuid::Uuid;
-
-use zbus::{Connection, Proxy};
-use zvariant::{OwnedObjectPath, OwnedValue};
-
 use crate::{
+    access_point::AccessPoint,
+    adapter::Adapter,
     agent::{Agent, AgentManager},
     device::Device,
     known_netowk::KnownNetwork,
     station::Station,
 };
-
+use anyhow::Result;
+use std::{collections::HashMap, sync::Arc};
+use uuid::Uuid;
+use zbus::{Connection, Proxy};
+use zvariant::{OwnedObjectPath, OwnedValue};
 #[derive(Debug)]
 pub struct Session {
     connection: Arc<Connection>,
@@ -37,6 +36,21 @@ impl Session {
             connection,
             objects,
         })
+    }
+
+    pub fn adapter(&self) -> Option<Adapter> {
+        let adapter: Option<Adapter> = self
+            .objects
+            .iter()
+            .flat_map(|(path, interfaces)| {
+                interfaces
+                    .iter()
+                    .filter(|(interface, _)| interface.as_str() == "net.connman.iwd.Adapter")
+                    .map(|_| Adapter::new(self.connection.clone(), path.clone()))
+            })
+            .next();
+
+        adapter
     }
 
     pub fn device(&self) -> Option<Device> {
@@ -66,6 +80,20 @@ impl Session {
             })
             .next();
         station
+    }
+
+    pub fn access_point(&self) -> Option<AccessPoint> {
+        let access_point: Option<AccessPoint> = self
+            .objects
+            .iter()
+            .flat_map(|(path, interfaces)| {
+                interfaces
+                    .iter()
+                    .filter(|(interface, _)| interface.as_str() == "net.connman.iwd.AccessPoint")
+                    .map(|_| AccessPoint::new(self.connection.clone(), path.clone()))
+            })
+            .next();
+        access_point
     }
 
     pub async fn register_agent(&self, agent: Agent) -> Result<AgentManager> {
