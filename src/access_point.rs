@@ -104,3 +104,46 @@ impl AccessPoint {
         Ok(proxy.get_property("GroupCipher").await.ok())
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct AccessPointDiagnostic {
+    pub(crate) connection: Arc<Connection>,
+    pub(crate) dbus_path: OwnedObjectPath,
+}
+
+impl AccessPointDiagnostic {
+    pub(crate) fn new(connection: Arc<Connection>, dbus_path: OwnedObjectPath) -> Self {
+        Self {
+            connection,
+            dbus_path,
+        }
+    }
+
+    pub(crate) async fn proxy<'a>(&self) -> Result<zbus::Proxy<'a>, zbus::Error> {
+        Proxy::new(
+            &self.connection,
+            "net.connman.iwd",
+            self.dbus_path.clone(),
+            "net.connman.iwd.AccessPointDiagnostic",
+        )
+        .await
+    }
+
+    pub async fn get(&self) -> Result<Vec<HashMap<String, String>>> {
+        let proxy = self.proxy().await?;
+        let diagnostic = proxy.call_method("GetDiagnostics", &()).await?;
+
+        let body = diagnostic.body();
+        let body: Vec<HashMap<String, Value>> = body.deserialize()?;
+        let body = body
+            .into_iter()
+            .map(|map| {
+                map.into_iter()
+                    .map(|(k, v)| (k, v.to_string()))
+                    .collect::<HashMap<String, String>>()
+            })
+            .collect::<Vec<HashMap<String, String>>>();
+
+        Ok(body)
+    }
+}

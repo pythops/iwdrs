@@ -1,5 +1,5 @@
 use crate::{
-    access_point::AccessPoint,
+    access_point::{AccessPoint, AccessPointDiagnostic},
     adapter::Adapter,
     agent::{Agent, AgentManager},
     device::Device,
@@ -94,6 +94,22 @@ impl Session {
             })
             .next();
         access_point
+    }
+
+    pub fn access_point_diagnostic(&self) -> Option<AccessPointDiagnostic> {
+        let access_point_diagnostic: Option<AccessPointDiagnostic> = self
+            .objects
+            .iter()
+            .flat_map(|(path, interfaces)| {
+                interfaces
+                    .iter()
+                    .filter(|(interface, _)| {
+                        interface.as_str() == "net.connman.iwd.AccessPointDiagnostic"
+                    })
+                    .map(|_| AccessPointDiagnostic::new(self.connection.clone(), path.clone()))
+            })
+            .next();
+        access_point_diagnostic
     }
 
     pub async fn register_agent(&self, agent: Agent) -> Result<AgentManager> {
