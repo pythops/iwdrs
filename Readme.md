@@ -8,6 +8,7 @@
 - [knownnetwork](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc/knownnetwork-api.txt)
 - [network](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc/network-api.txt)
 - [station](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc/station-api.txt)
+- [station diagnostics](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc/station-diagnostic-api.txt)
 - [access point](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc/access-point-api.txt)
 - [access point diagnostics](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc/access-point-diagnostic-api.txt)
 

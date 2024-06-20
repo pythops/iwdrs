@@ -1,13 +1,11 @@
 use anyhow::Result;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use zvariant::OwnedObjectPath;
+use zvariant::{OwnedObjectPath, Value};
 
 use zbus::{Connection, Proxy};
 
 use crate::netowrk::Network;
-
-const INTERFACE: &str = "net.connman.iwd.Station";
 
 #[derive(Debug, Clone)]
 pub struct Station {
@@ -15,12 +13,10 @@ pub struct Station {
     pub(crate) dbus_path: OwnedObjectPath,
 }
 
-pub enum StationState {
-    Connected,
-    Disconnected,
-    Connectimg,
-    Disconnecting,
-    Roaming,
+#[derive(Debug, Clone)]
+pub struct StationDiagnostic {
+    pub(crate) connection: Arc<Connection>,
+    pub(crate) dbus_path: OwnedObjectPath,
 }
 
 impl Station {
@@ -36,7 +32,7 @@ impl Station {
             &self.connection,
             "net.connman.iwd",
             self.dbus_path.clone(),
-            INTERFACE,
+            "net.connman.iwd.Station",
         )
         .await
     }
@@ -92,5 +88,44 @@ impl Station {
             .collect();
 
         Ok(networks)
+    }
+}
+
+impl StationDiagnostic {
+    pub(crate) fn new(connection: Arc<Connection>, dbus_path: OwnedObjectPath) -> Self {
+        Self {
+            connection,
+            dbus_path,
+        }
+    }
+
+    pub(crate) async fn proxy<'a>(&self) -> Result<zbus::Proxy<'a>, zbus::Error> {
+        Proxy::new(
+            &self.connection,
+            "net.connman.iwd",
+            self.dbus_path.clone(),
+            "net.connman.iwd.StationDiagnostic",
+        )
+        .await
+    }
+
+    pub async fn get(&self) -> Result<HashMap<String, String>> {
+        let proxy = self.proxy().await?;
+        let diagnostic = proxy.call_method("GetDiagnostics", &()).await?;
+
+        let body = diagnostic.body();
+        let body: HashMap<String, Value> = body.deserialize()?;
+        let body = body
+            .into_iter()
+            .map(|(k, v)| match k.as_str() {
+                "Frequency" => {
+                    let v: u32 = v.try_into().unwrap();
+                    (k, v.to_string())
+                }
+                _ => (k, v.to_string()),
+            })
+            .collect::<HashMap<String, String>>();
+
+        Ok(body)
     }
 }

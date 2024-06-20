@@ -4,7 +4,7 @@ use crate::{
     agent::{Agent, AgentManager},
     device::Device,
     known_netowk::KnownNetwork,
-    station::Station,
+    station::{Station, StationDiagnostic},
 };
 use anyhow::Result;
 use std::{collections::HashMap, sync::Arc};
@@ -80,6 +80,22 @@ impl Session {
             })
             .next();
         station
+    }
+
+    pub fn station_diagnostic(&self) -> Option<StationDiagnostic> {
+        let diagnostic: Option<StationDiagnostic> = self
+            .objects
+            .iter()
+            .flat_map(|(path, interfaces)| {
+                interfaces
+                    .iter()
+                    .filter(|(interface, _)| {
+                        interface.as_str() == "net.connman.iwd.StationDiagnostic"
+                    })
+                    .map(|_| StationDiagnostic::new(self.connection.clone(), path.clone()))
+            })
+            .next();
+        diagnostic
     }
 
     pub fn access_point(&self) -> Option<AccessPoint> {
