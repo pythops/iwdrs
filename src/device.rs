@@ -1,11 +1,11 @@
-use anyhow::Result;
+use anyhow::{Ok, Result};
 use std::sync::Arc;
 
 use zvariant::OwnedObjectPath;
 
 use zbus::{Connection, Proxy};
 
-use crate::adapter::Adapter;
+use crate::{adapter::Adapter, modes::Mode};
 
 #[derive(Debug, Clone)]
 pub struct Device {
@@ -50,10 +50,15 @@ impl Device {
         Ok(adapter)
     }
 
-    pub async fn get_mode(&self) -> Result<String> {
+    pub async fn get_mode(&self) -> Result<Mode> {
         let proxy = self.proxy().await?;
         let mode: String = proxy.get_property("Mode").await?;
-        Ok(mode)
+
+        match mode.as_str() {
+            "station" => Ok(Mode::Station),
+            "ap" => Ok(Mode::Ap),
+            _ => unimplemented!(),
+        }
     }
 
     pub async fn is_powered(&self) -> Result<bool> {
@@ -62,9 +67,9 @@ impl Device {
         Ok(is_powered)
     }
 
-    pub async fn set_mode(&self, mode: String) -> Result<()> {
+    pub async fn set_mode(&self, mode: Mode) -> Result<()> {
         let proxy = self.proxy().await?;
-        proxy.set_property("Mode", mode).await?;
+        proxy.set_property("Mode", mode.to_string()).await?;
         Ok(())
     }
 

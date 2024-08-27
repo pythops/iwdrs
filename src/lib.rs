@@ -13,3 +13,5 @@ pub mod netowrk;
 pub mod known_netowk;
 
 pub mod access_point;
+
+pub mod modes;
