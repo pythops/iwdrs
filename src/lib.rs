@@ -8,7 +8,7 @@ pub mod adapter;
 
 pub mod agent;
 
-pub mod netowrk;
+pub mod network;
 
 pub mod known_netowk;
 

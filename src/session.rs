@@ -11,6 +11,7 @@ use std::{collections::HashMap, sync::Arc};
 use uuid::Uuid;
 use zbus::{Connection, Proxy};
 use zvariant::{OwnedObjectPath, OwnedValue};
+
 #[derive(Debug)]
 pub struct Session {
     connection: Arc<Connection>,

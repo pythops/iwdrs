@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::{future::Future, pin::Pin, sync::Arc};
 
-use zbus::{interface, Connection, Proxy};
+use zbus::{Connection, Proxy, interface};
 use zvariant::OwnedObjectPath;
 
 // AgentManager
@@ -62,7 +62,7 @@ impl Agent {
     #[zbus(name = "RequestPassphrase")]
     async fn request_passphrase(
         &self,
-        _netowrk_path: OwnedObjectPath,
+        _network_path: OwnedObjectPath,
     ) -> zbus::fdo::Result<String> {
         match (self.request_passphrase_fn)().await {
             Ok(passphrase) => Ok(passphrase),

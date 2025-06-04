@@ -23,7 +23,7 @@ impl TryFrom<&str> for Mode {
         match value {
             "station" => Ok(Mode::Station),
             "ap" => Ok(Mode::Ap),
-            _ => Err("Unkown mode"),
+            _ => Err("Unknown mode"),
         }
     }
 }

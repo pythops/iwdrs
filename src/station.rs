@@ -5,7 +5,7 @@ use zvariant::{OwnedObjectPath, Value};
 
 use zbus::{Connection, Proxy};
 
-use crate::netowrk::Network;
+use crate::network::Network;
 
 #[derive(Debug, Clone)]
 pub struct Station {
@@ -62,21 +62,21 @@ impl Station {
 
     pub async fn scan(&self) -> Result<()> {
         let proxy = self.proxy().await?;
-        proxy.call("Scan", &()).await?;
+        proxy.call_method("Scan", &()).await?;
         Ok(())
     }
 
     pub async fn disconnect(&self) -> Result<()> {
         let proxy = self.proxy().await?;
-        proxy.call("Disconnect", &()).await?;
+        proxy.call_method("Disconnect", &()).await?;
         Ok(())
     }
 
     pub async fn discovered_networks(&self) -> Result<Vec<(Network, i16)>> {
         let proxy = self.proxy().await?;
-        let netowrks = proxy.call_method("GetOrderedNetworks", &()).await?;
+        let networks = proxy.call_method("GetOrderedNetworks", &()).await?;
 
-        let body = netowrks.body();
+        let body = networks.body();
         let objects: Vec<(OwnedObjectPath, i16)> = body.deserialize()?;
 
         let networks: Vec<(Network, i16)> = objects

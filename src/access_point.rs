@@ -50,7 +50,7 @@ impl AccessPoint {
 
     pub async fn scan(&self) -> Result<()> {
         let proxy = self.proxy().await?;
-        proxy.call("Scan", &()).await?;
+        proxy.call_method("Scan", &()).await?;
         Ok(())
     }
 
@@ -71,7 +71,7 @@ impl AccessPoint {
         Ok(body)
     }
 
-    // Propreties
+    // Proprieties
     pub async fn has_started(&self) -> Result<bool> {
         let proxy = self.proxy().await?;
         let has_started: bool = proxy.get_property("Started").await?;
