@@ -1,3 +1,8 @@
+### v0.1.6 - 2025-06-04
+
+- Bump dependencies
+- fix typos
+
 ### v0.1.5 - 2024-08-27
 
 - Add device mode as enum
