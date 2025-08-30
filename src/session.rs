@@ -1,10 +1,10 @@
 use crate::{
-    access_point::{AccessPoint, AccessPointDiagnostic},
+    access_point::{AccessPoint, AccessPointDiagnostics},
     adapter::Adapter,
     agent::{Agent, AgentManager},
     device::Device,
     known_netowk::KnownNetwork,
-    station::{Station, StationDiagnostic},
+    station::{Station, StationDiagnostics},
 };
 use anyhow::Result;
 use std::{collections::HashMap, sync::Arc};
@@ -39,9 +39,8 @@ impl Session {
         })
     }
 
-    pub fn adapter(&self) -> Option<Adapter> {
-        let adapter: Option<Adapter> = self
-            .objects
+    pub fn adapters(&self) -> Vec<Adapter> {
+        self.objects
             .iter()
             .flat_map(|(path, interfaces)| {
                 interfaces
@@ -49,14 +48,11 @@ impl Session {
                     .filter(|(interface, _)| interface.as_str() == "net.connman.iwd.Adapter")
                     .map(|_| Adapter::new(self.connection.clone(), path.clone()))
             })
-            .next();
-
-        adapter
+            .collect()
     }
 
-    pub fn device(&self) -> Option<Device> {
-        let device: Option<Device> = self
-            .objects
+    pub fn devices(&self) -> Vec<Device> {
+        self.objects
             .iter()
             .flat_map(|(path, interfaces)| {
                 interfaces
@@ -64,14 +60,11 @@ impl Session {
                     .filter(|(interface, _)| interface.as_str() == "net.connman.iwd.Device")
                     .map(|_| Device::new(self.connection.clone(), path.clone()))
             })
-            .next();
-
-        device
+            .collect()
     }
 
-    pub fn station(&self) -> Option<Station> {
-        let station: Option<Station> = self
-            .objects
+    pub fn stations(&self) -> Vec<Station> {
+        self.objects
             .iter()
             .flat_map(|(path, interfaces)| {
                 interfaces
@@ -79,13 +72,11 @@ impl Session {
                     .filter(|(interface, _)| interface.as_str() == "net.connman.iwd.Station")
                     .map(|_| Station::new(self.connection.clone(), path.clone()))
             })
-            .next();
-        station
+            .collect()
     }
 
-    pub fn station_diagnostic(&self) -> Option<StationDiagnostic> {
-        let diagnostic: Option<StationDiagnostic> = self
-            .objects
+    pub fn stations_diagnostics(&self) -> Vec<StationDiagnostics> {
+        self.objects
             .iter()
             .flat_map(|(path, interfaces)| {
                 interfaces
@@ -93,15 +84,13 @@ impl Session {
                     .filter(|(interface, _)| {
                         interface.as_str() == "net.connman.iwd.StationDiagnostic"
                     })
-                    .map(|_| StationDiagnostic::new(self.connection.clone(), path.clone()))
+                    .map(|_| StationDiagnostics::new(self.connection.clone(), path.clone()))
             })
-            .next();
-        diagnostic
+            .collect()
     }
 
-    pub fn access_point(&self) -> Option<AccessPoint> {
-        let access_point: Option<AccessPoint> = self
-            .objects
+    pub fn access_points(&self) -> Vec<AccessPoint> {
+        self.objects
             .iter()
             .flat_map(|(path, interfaces)| {
                 interfaces
@@ -109,13 +98,11 @@ impl Session {
                     .filter(|(interface, _)| interface.as_str() == "net.connman.iwd.AccessPoint")
                     .map(|_| AccessPoint::new(self.connection.clone(), path.clone()))
             })
-            .next();
-        access_point
+            .collect()
     }
 
-    pub fn access_point_diagnostic(&self) -> Option<AccessPointDiagnostic> {
-        let access_point_diagnostic: Option<AccessPointDiagnostic> = self
-            .objects
+    pub fn access_points_diagnostics(&self) -> Vec<AccessPointDiagnostics> {
+        self.objects
             .iter()
             .flat_map(|(path, interfaces)| {
                 interfaces
@@ -123,10 +110,9 @@ impl Session {
                     .filter(|(interface, _)| {
                         interface.as_str() == "net.connman.iwd.AccessPointDiagnostic"
                     })
-                    .map(|_| AccessPointDiagnostic::new(self.connection.clone(), path.clone()))
+                    .map(|_| AccessPointDiagnostics::new(self.connection.clone(), path.clone()))
             })
-            .next();
-        access_point_diagnostic
+            .collect()
     }
 
     pub async fn register_agent(&self, agent: Agent) -> Result<AgentManager> {
@@ -139,16 +125,13 @@ impl Session {
     }
 
     pub async fn known_networks(&self) -> Vec<KnownNetwork> {
-        let known_networks: Vec<KnownNetwork> = self
-            .objects
+        self.objects
             .iter()
             .filter_map(|(path, interfaces)| {
                 interfaces
                     .get("net.connman.iwd.KnownNetwork")
                     .map(|_net| KnownNetwork::new(self.connection.clone(), path.clone()))
             })
-            .collect();
-
-        known_networks
+            .collect()
     }
 }

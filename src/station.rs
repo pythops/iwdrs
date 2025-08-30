@@ -14,7 +14,7 @@ pub struct Station {
 }
 
 #[derive(Debug, Clone)]
-pub struct StationDiagnostic {
+pub struct StationDiagnostics {
     pub(crate) connection: Arc<Connection>,
     pub(crate) dbus_path: OwnedObjectPath,
 }
@@ -91,7 +91,7 @@ impl Station {
     }
 }
 
-impl StationDiagnostic {
+impl StationDiagnostics {
     pub(crate) fn new(connection: Arc<Connection>, dbus_path: OwnedObjectPath) -> Self {
         Self {
             connection,

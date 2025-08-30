@@ -106,12 +106,12 @@ impl AccessPoint {
 }
 
 #[derive(Debug, Clone)]
-pub struct AccessPointDiagnostic {
+pub struct AccessPointDiagnostics {
     pub(crate) connection: Arc<Connection>,
     pub(crate) dbus_path: OwnedObjectPath,
 }
 
-impl AccessPointDiagnostic {
+impl AccessPointDiagnostics {
     pub(crate) fn new(connection: Arc<Connection>, dbus_path: OwnedObjectPath) -> Self {
         Self {
             connection,
