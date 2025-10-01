@@ -2,7 +2,7 @@
 name = "iwdrs"
 version = "0.1.6"
 edition = "2024"
-license = "LGPL-2.1"
+license = "MIT"
 description = "Rust cratte for iwd"
 readme = "Readme.md"
 homepage = "https://github.com/pythops/iwdrs"

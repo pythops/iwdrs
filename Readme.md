@@ -37,4 +37,4 @@ iwdrs = 0.1
 
 ## License
 
-LGPL-2.1
+MIT
