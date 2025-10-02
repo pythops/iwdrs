@@ -1,11 +1,16 @@
-use anyhow::Result;
 use std::{collections::HashMap, sync::Arc};
 
 use zvariant::{OwnedObjectPath, Value};
 
 use zbus::{Connection, Proxy};
 
-use crate::network::Network;
+use crate::{
+    error::{
+        Result as IWDResult,
+        station::{DisconnectError, ScanError},
+    },
+    network::Network,
+};
 
 #[derive(Debug, Clone)]
 pub struct Station {
@@ -37,19 +42,19 @@ impl Station {
         .await
     }
 
-    pub async fn is_scanning(&self) -> Result<bool> {
+    pub async fn is_scanning(&self) -> zbus::Result<bool> {
         let proxy = self.proxy().await?;
         let is_scanning: bool = proxy.get_property("Scanning").await?;
         Ok(is_scanning)
     }
 
-    pub async fn state(&self) -> Result<String> {
+    pub async fn state(&self) -> zbus::Result<String> {
         let proxy = self.proxy().await?;
         let state: String = proxy.get_property("State").await?;
         Ok(state)
     }
 
-    pub async fn connected_network(&self) -> Result<Option<Network>> {
+    pub async fn connected_network(&self) -> zbus::Result<Option<Network>> {
         let state = self.state().await?;
         if state == "connected" {
             let proxy = self.proxy().await?;
@@ -60,19 +65,19 @@ impl Station {
         Ok(None)
     }
 
-    pub async fn scan(&self) -> Result<()> {
+    pub async fn scan(&self) -> IWDResult<(), ScanError> {
         let proxy = self.proxy().await?;
         proxy.call_method("Scan", &()).await?;
         Ok(())
     }
 
-    pub async fn disconnect(&self) -> Result<()> {
+    pub async fn disconnect(&self) -> IWDResult<(), DisconnectError> {
         let proxy = self.proxy().await?;
         proxy.call_method("Disconnect", &()).await?;
         Ok(())
     }
 
-    pub async fn discovered_networks(&self) -> Result<Vec<(Network, i16)>> {
+    pub async fn discovered_networks(&self) -> zbus::Result<Vec<(Network, i16)>> {
         let proxy = self.proxy().await?;
         let networks = proxy.call_method("GetOrderedNetworks", &()).await?;
 
@@ -99,7 +104,7 @@ impl StationDiagnostics {
         }
     }
 
-    pub(crate) async fn proxy<'a>(&self) -> Result<zbus::Proxy<'a>, zbus::Error> {
+    pub(crate) async fn proxy<'a>(&self) -> zbus::Result<zbus::Proxy<'a>> {
         Proxy::new(
             &self.connection,
             "net.connman.iwd",
@@ -109,7 +114,7 @@ impl StationDiagnostics {
         .await
     }
 
-    pub async fn get(&self) -> Result<HashMap<String, String>> {
+    pub async fn get(&self) -> zbus::Result<HashMap<String, String>> {
         let proxy = self.proxy().await?;
         let diagnostic = proxy.call_method("GetDiagnostics", &()).await?;
 

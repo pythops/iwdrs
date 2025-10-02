@@ -1,9 +1,8 @@
-use anyhow::{Ok, Result};
 use std::sync::Arc;
 
 use zvariant::OwnedObjectPath;
 
-use zbus::{Connection, Proxy};
+use zbus::{Connection, Proxy, Result};
 
 use crate::{adapter::Adapter, modes::Mode};
 
@@ -21,7 +20,7 @@ impl Device {
         }
     }
 
-    pub(crate) async fn proxy<'a>(&self) -> Result<zbus::Proxy<'a>, zbus::Error> {
+    pub(crate) async fn proxy<'a>(&self) -> Result<zbus::Proxy<'a>> {
         Proxy::new(
             &self.connection,
             "net.connman.iwd",

@@ -1,7 +1,6 @@
-use anyhow::Result;
 use std::sync::Arc;
 
-use zbus::{Connection, Proxy};
+use zbus::{Connection, Proxy, Result};
 use zvariant::OwnedObjectPath;
 
 #[derive(Clone, Debug)]
@@ -18,7 +17,7 @@ impl KnownNetwork {
         }
     }
 
-    async fn proxy<'a>(&self) -> Result<zbus::Proxy<'a>, zbus::Error> {
+    async fn proxy<'a>(&self) -> Result<zbus::Proxy<'a>> {
         Proxy::new(
             &self.connection,
             "net.connman.iwd",
