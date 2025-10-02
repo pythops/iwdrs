@@ -15,3 +15,5 @@ pub mod known_netowk;
 pub mod access_point;
 
 pub mod modes;
+
+pub mod error;

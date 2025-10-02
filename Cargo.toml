@@ -1,6 +1,6 @@
 [package]
 name = "iwdrs"
-version = "0.1.6"
+version = "0.2.0"
 edition = "2024"
 license = "MIT"
 description = "Rust cratte for iwd"
@@ -11,5 +11,6 @@ repository = "https://github.com/pythops/iwdrs"
 [dependencies]
 zbus = "5"
 zvariant = "5"
-anyhow = "1"
 uuid = { version = "1", features = ["v4"] }
+thiserror = "2.0.17"
+strum = {version = "0.27.2", features = ["derive"]}

@@ -1,4 +1,3 @@
-use anyhow::Result;
 use std::{future::Future, pin::Pin, sync::Arc};
 
 use zbus::{Connection, Proxy, interface};
@@ -30,7 +29,7 @@ impl AgentManager {
         .await
     }
 
-    pub(crate) async fn register_agent(&self, agent: Agent) -> Result<()> {
+    pub(crate) async fn register_agent(&self, agent: Agent) -> zbus::Result<()> {
         let proxy = self.proxy().await?;
         proxy
             .call_method("RegisterAgent", &(self.dbus_path))

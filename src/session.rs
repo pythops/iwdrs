@@ -6,7 +6,6 @@ use crate::{
     known_netowk::KnownNetwork,
     station::{Station, StationDiagnostics},
 };
-use anyhow::Result;
 use std::{collections::HashMap, sync::Arc};
 use uuid::Uuid;
 use zbus::{Connection, Proxy};
@@ -19,7 +18,7 @@ pub struct Session {
 }
 
 impl Session {
-    pub async fn new() -> Result<Self> {
+    pub async fn new() -> zbus::Result<Self> {
         let connection = Arc::new(Connection::system().await?);
 
         let proxy = Proxy::new(
@@ -115,7 +114,7 @@ impl Session {
             .collect()
     }
 
-    pub async fn register_agent(&self, agent: Agent) -> Result<AgentManager> {
+    pub async fn register_agent(&self, agent: Agent) -> zbus::Result<AgentManager> {
         let path =
             OwnedObjectPath::try_from(format!("/iwdrs/agent/{}", Uuid::new_v4().as_simple()))?;
         let agent_manager = AgentManager::new(self.connection.clone(), path);
