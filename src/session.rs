@@ -114,7 +114,7 @@ impl Session {
             .collect()
     }
 
-    pub async fn register_agent(&self, agent: Agent) -> zbus::Result<AgentManager> {
+    pub async fn register_agent(&self, agent: impl Agent) -> zbus::Result<AgentManager> {
         let path =
             OwnedObjectPath::try_from(format!("/iwdrs/agent/{}", Uuid::new_v4().as_simple()))?;
         let agent_manager = AgentManager::new(self.connection.clone(), path);
