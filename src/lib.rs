@@ -10,7 +10,7 @@ pub mod agent;
 
 pub mod network;
 
-pub mod known_netowk;
+pub mod known_network;
 
 pub mod access_point;
 

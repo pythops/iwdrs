@@ -1,12 +1,13 @@
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 
+use strum::EnumString;
 use zbus::{Connection, Proxy, Result as ZbusResult};
-use zvariant::OwnedObjectPath;
+use zvariant::{OwnedObjectPath, OwnedValue};
 
 use crate::{
     device::Device,
     error::{IWDError, network::ConnectError},
-    known_netowk::KnownNetwork,
+    known_network::KnownNetwork,
 };
 
 #[derive(Clone, Debug)]
@@ -62,10 +63,9 @@ impl Network {
         Ok(device)
     }
 
-    pub async fn network_type(&self) -> ZbusResult<String> {
+    pub async fn network_type(&self) -> ZbusResult<NetworkType> {
         let proxy = self.proxy().await?;
-        let network_type: String = proxy.get_property("Type").await?;
-        Ok(network_type)
+        proxy.get_property("Type").await
     }
 
     pub async fn known_network(&self) -> ZbusResult<Option<KnownNetwork>> {
@@ -76,5 +76,24 @@ impl Network {
             return Ok(Some(network));
         }
         Ok(None)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, EnumString)]
+#[strum(ascii_case_insensitive)]
+pub enum NetworkType {
+    Open,
+    Wep,
+    Psk,
+    #[strum(serialize = "8021x")]
+    Eap,
+}
+
+impl TryFrom<OwnedValue> for NetworkType {
+    type Error = zvariant::Error;
+
+    fn try_from(value: OwnedValue) -> Result<Self, Self::Error> {
+        let state_string: String = value.try_into()?;
+        Self::from_str(&state_string).map_err(|_| zvariant::Error::IncorrectType)
     }
 }

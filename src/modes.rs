@@ -1,7 +1,9 @@
 use std::fmt::Display;
 
-#[non_exhaustive]
-#[derive(Debug, Clone, PartialEq)]
+use strum::EnumString;
+
+#[derive(Debug, Clone, Copy, PartialEq, EnumString)]
+#[strum(ascii_case_insensitive)]
 pub enum Mode {
     Station,
     Ap,
@@ -12,18 +14,6 @@ impl Display for Mode {
         match self {
             Mode::Ap => write!(f, "ap"),
             Mode::Station => write!(f, "station"),
-        }
-    }
-}
-
-impl TryFrom<&str> for Mode {
-    type Error = &'static str;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value {
-            "station" => Ok(Mode::Station),
-            "ap" => Ok(Mode::Ap),
-            _ => Err("Unknown mode"),
         }
     }
 }

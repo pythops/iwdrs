@@ -3,6 +3,8 @@ use std::sync::Arc;
 use zbus::{Connection, Proxy, Result};
 use zvariant::OwnedObjectPath;
 
+use crate::network::NetworkType;
+
 #[derive(Clone, Debug)]
 pub struct KnownNetwork {
     pub(crate) connection: Arc<Connection>,
@@ -39,10 +41,9 @@ impl KnownNetwork {
         Ok(name)
     }
 
-    pub async fn network_type(&self) -> Result<String> {
+    pub async fn network_type(&self) -> Result<NetworkType> {
         let proxy = self.proxy().await?;
-        let network_type: String = proxy.get_property("Type").await?;
-        Ok(network_type)
+        proxy.get_property("Type").await
     }
 
     pub async fn hidden(&self) -> Result<bool> {

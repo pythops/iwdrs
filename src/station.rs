@@ -1,6 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
-use zvariant::{OwnedObjectPath, Value};
+use strum::EnumString;
+use zvariant::{OwnedObjectPath, OwnedValue, Value};
 
 use zbus::{Connection, Proxy};
 
@@ -48,15 +49,14 @@ impl Station {
         Ok(is_scanning)
     }
 
-    pub async fn state(&self) -> zbus::Result<String> {
+    pub async fn state(&self) -> zbus::Result<State> {
         let proxy = self.proxy().await?;
-        let state: String = proxy.get_property("State").await?;
-        Ok(state)
+        proxy.get_property("State").await
     }
 
     pub async fn connected_network(&self) -> zbus::Result<Option<Network>> {
         let state = self.state().await?;
-        if state == "connected" {
+        if matches!(state, State::Connected) {
             let proxy = self.proxy().await?;
             let network_path: OwnedObjectPath = proxy.get_property("ConnectedNetwork").await?;
             let network = Network::new(self.connection.clone(), network_path);
@@ -132,5 +132,24 @@ impl StationDiagnostics {
             .collect::<HashMap<String, String>>();
 
         Ok(body)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, EnumString)]
+#[strum(ascii_case_insensitive)]
+pub enum State {
+    Connected,
+    Disconnected,
+    Connecting,
+    Disconnecting,
+    Roaming,
+}
+
+impl TryFrom<OwnedValue> for State {
+    type Error = zvariant::Error;
+
+    fn try_from(value: OwnedValue) -> Result<Self, Self::Error> {
+        let state_string: String = value.try_into()?;
+        Self::from_str(&state_string).map_err(|_| zvariant::Error::IncorrectType)
     }
 }
