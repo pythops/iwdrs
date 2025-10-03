@@ -498,6 +498,7 @@ name = "iwdrs"
 version = "0.2.0"
 dependencies = [
  "clap",
+ "futures-lite",
  "strum",
  "thiserror",
  "tokio",
