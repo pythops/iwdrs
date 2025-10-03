@@ -2,6 +2,7 @@ use strum::EnumMessage;
 use thiserror::Error;
 
 pub mod access_point;
+pub mod agent;
 pub mod network;
 pub mod station;
 
