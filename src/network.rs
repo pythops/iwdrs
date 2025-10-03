@@ -7,7 +7,7 @@ use zvariant::{OwnedObjectPath, OwnedValue};
 use crate::{
     device::Device,
     error::{IWDError, network::ConnectError},
-    known_netowk::KnownNetwork,
+    known_network::KnownNetwork,
 };
 
 #[derive(Clone, Debug)]

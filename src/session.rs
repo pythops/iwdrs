@@ -3,7 +3,7 @@ use crate::{
     adapter::Adapter,
     agent::{Agent, AgentManager},
     device::Device,
-    known_netowk::KnownNetwork,
+    known_network::KnownNetwork,
     station::{Station, StationDiagnostics},
 };
 use std::{collections::HashMap, sync::Arc};
