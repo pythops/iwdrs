@@ -1,5 +1,6 @@
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 
+use futures_lite::{Stream, StreamExt};
 use strum::EnumString;
 use zvariant::{OwnedObjectPath, OwnedValue, Value};
 
@@ -50,8 +51,18 @@ impl Station {
     }
 
     pub async fn state(&self) -> zbus::Result<State> {
+        self.state_stream()
+            .await?
+            .next()
+            .await
+            .ok_or_else(|| zbus::Error::Unsupported)?
+    }
+
+    pub async fn state_stream(
+        &self,
+    ) -> zbus::Result<impl Stream<Item = zbus::Result<State>> + Unpin + 'static> {
         let proxy = self.proxy().await?;
-        proxy.get_property("State").await
+        crate::property_stream(proxy, "State").await
     }
 
     pub async fn connected_network(&self) -> zbus::Result<Option<Network>> {
