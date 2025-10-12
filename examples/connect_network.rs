@@ -16,17 +16,7 @@ async fn main() {
 
     let session = iwdrs::session::Session::new().await.unwrap();
 
-    let agent = Agent {
-        request_passphrase_fn: Box::new(move || {
-            let password = password.clone();
-            Box::pin(async {
-                match password {
-                    Some(password) => Ok(password.clone()),
-                    None => Err("No Password Provided".into()),
-                }
-            })
-        }),
-    };
+    let agent = PasswdAgent(password);
     let _agent_manager = session.register_agent(agent).await.unwrap();
 
     let station = session.stations().pop().unwrap();
@@ -56,4 +46,40 @@ async fn find_network<'a>(ssid: &str, networks: &'a [(Network, i16)]) -> Option<
         }
     }
     None
+}
+
+struct PasswdAgent(Option<String>);
+
+impl Agent for PasswdAgent {
+    fn request_passphrase(
+        &self,
+        _network: &Network,
+    ) -> impl Future<Output = Result<String, iwdrs::error::agent::Canceled>> + Send {
+        std::future::ready(match self.0.as_ref() {
+            Some(passwd) => Ok(passwd.clone()),
+            None => Err(iwdrs::error::agent::Canceled {}),
+        })
+    }
+
+    fn request_private_key_passphrase(
+        &self,
+        _network: &Network,
+    ) -> impl Future<Output = Result<String, iwdrs::error::agent::Canceled>> + Send {
+        std::future::ready(Err(iwdrs::error::agent::Canceled {}))
+    }
+
+    fn request_user_name_and_passphrase(
+        &self,
+        _network: &Network,
+    ) -> impl Future<Output = Result<(String, String), iwdrs::error::agent::Canceled>> + Send {
+        std::future::ready(Err(iwdrs::error::agent::Canceled {}))
+    }
+
+    fn request_user_password(
+        &self,
+        _network: &Network,
+        _user_name: Option<&String>,
+    ) -> impl Future<Output = Result<(String, String), iwdrs::error::agent::Canceled>> + Send {
+        std::future::ready(Err(iwdrs::error::agent::Canceled {}))
+    }
 }
