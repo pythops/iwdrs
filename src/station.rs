@@ -50,6 +50,18 @@ impl Station {
         Ok(is_scanning)
     }
 
+    pub async fn wait_for_scan_complete(&self) -> zbus::Result<()> {
+        let proxy = self.proxy().await?;
+        let _ = crate::property_stream::<bool>(proxy, "Scanning")
+            .await?
+            .skip_while(|scanning| scanning.as_ref().is_ok_and(|scanning| *scanning))
+            .next()
+            .await
+            .ok_or_else(|| zbus::Error::InvalidReply)
+            .flatten()?;
+        Ok(())
+    }
+
     pub async fn state(&self) -> zbus::Result<State> {
         self.state_stream()
             .await?
