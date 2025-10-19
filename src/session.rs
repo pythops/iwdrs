@@ -3,26 +3,28 @@ use crate::{
     adapter::Adapter,
     agent::{Agent, AgentManager},
     device::Device,
+    iwd_interface,
     known_network::KnownNetwork,
     station::{Station, StationDiagnostics},
 };
-use std::{collections::HashMap, sync::Arc};
+use futures_lite::{StreamExt, stream};
+use std::collections::HashMap;
 use uuid::Uuid;
 use zbus::{Connection, Proxy};
 use zvariant::{OwnedObjectPath, OwnedValue};
 
 #[derive(Debug)]
 pub struct Session {
-    connection: Arc<Connection>,
+    connection: Connection,
     pub(crate) objects: HashMap<OwnedObjectPath, HashMap<String, HashMap<String, OwnedValue>>>,
 }
 
 impl Session {
     pub async fn new() -> zbus::Result<Self> {
-        let connection = Arc::new(Connection::system().await?);
+        let connection = Connection::system().await?;
 
         let proxy = Proxy::new(
-            &connection.clone(),
+            &connection,
             "net.connman.iwd",
             "/",
             "org.freedesktop.DBus.ObjectManager",
@@ -38,80 +40,50 @@ impl Session {
         })
     }
 
-    pub fn adapters(&self) -> Vec<Adapter> {
-        self.objects
-            .iter()
-            .flat_map(|(path, interfaces)| {
-                interfaces
-                    .iter()
-                    .filter(|(interface, _)| interface.as_str() == "net.connman.iwd.Adapter")
-                    .map(|_| Adapter::new(self.connection.clone(), path.clone()))
-            })
-            .collect()
+    fn object_type(
+        &self,
+        interface_type: &'static str,
+    ) -> impl IntoIterator<Item = OwnedObjectPath> {
+        self.objects.iter().flat_map(move |(path, interfaces)| {
+            let path = path.clone();
+            interfaces
+                .iter()
+                .filter(move |(interface, _)| interface.as_str() == interface_type)
+                .map(move |_| path.clone())
+        })
     }
 
-    pub fn devices(&self) -> Vec<Device> {
-        self.objects
-            .iter()
-            .flat_map(|(path, interfaces)| {
-                interfaces
-                    .iter()
-                    .filter(|(interface, _)| interface.as_str() == "net.connman.iwd.Device")
-                    .map(|_| Device::new(self.connection.clone(), path.clone()))
-            })
-            .collect()
+    async fn collect_interface<Output: iwd_interface::IwdInterface>(
+        &self,
+    ) -> zbus::Result<Vec<Output>> {
+        stream::iter(self.object_type(Output::INTERFACE))
+            .then(|path| async move { Output::new(self.connection.clone(), path).await })
+            .try_collect()
+            .await
     }
 
-    pub fn stations(&self) -> Vec<Station> {
-        self.objects
-            .iter()
-            .flat_map(|(path, interfaces)| {
-                interfaces
-                    .iter()
-                    .filter(|(interface, _)| interface.as_str() == "net.connman.iwd.Station")
-                    .map(|_| Station::new(self.connection.clone(), path.clone()))
-            })
-            .collect()
+    pub async fn adapters(&self) -> zbus::Result<Vec<Adapter>> {
+        self.collect_interface().await
     }
 
-    pub fn stations_diagnostics(&self) -> Vec<StationDiagnostics> {
-        self.objects
-            .iter()
-            .flat_map(|(path, interfaces)| {
-                interfaces
-                    .iter()
-                    .filter(|(interface, _)| {
-                        interface.as_str() == "net.connman.iwd.StationDiagnostic"
-                    })
-                    .map(|_| StationDiagnostics::new(self.connection.clone(), path.clone()))
-            })
-            .collect()
+    pub async fn devices(&self) -> zbus::Result<Vec<Device>> {
+        self.collect_interface().await
     }
 
-    pub fn access_points(&self) -> Vec<AccessPoint> {
-        self.objects
-            .iter()
-            .flat_map(|(path, interfaces)| {
-                interfaces
-                    .iter()
-                    .filter(|(interface, _)| interface.as_str() == "net.connman.iwd.AccessPoint")
-                    .map(|_| AccessPoint::new(self.connection.clone(), path.clone()))
-            })
-            .collect()
+    pub async fn stations(&self) -> zbus::Result<Vec<Station>> {
+        self.collect_interface().await
     }
 
-    pub fn access_points_diagnostics(&self) -> Vec<AccessPointDiagnostics> {
-        self.objects
-            .iter()
-            .flat_map(|(path, interfaces)| {
-                interfaces
-                    .iter()
-                    .filter(|(interface, _)| {
-                        interface.as_str() == "net.connman.iwd.AccessPointDiagnostic"
-                    })
-                    .map(|_| AccessPointDiagnostics::new(self.connection.clone(), path.clone()))
-            })
-            .collect()
+    pub async fn stations_diagnostics(&self) -> zbus::Result<Vec<StationDiagnostics>> {
+        self.collect_interface().await
+    }
+
+    pub async fn access_points(&self) -> zbus::Result<Vec<AccessPoint>> {
+        self.collect_interface().await
+    }
+
+    pub async fn access_points_diagnostics(&self) -> zbus::Result<Vec<AccessPointDiagnostics>> {
+        self.collect_interface().await
     }
 
     pub async fn register_agent(&self, agent: impl Agent) -> zbus::Result<AgentManager> {
@@ -123,14 +95,7 @@ impl Session {
         Ok(agent_manager)
     }
 
-    pub async fn known_networks(&self) -> Vec<KnownNetwork> {
-        self.objects
-            .iter()
-            .filter_map(|(path, interfaces)| {
-                interfaces
-                    .get("net.connman.iwd.KnownNetwork")
-                    .map(|_net| KnownNetwork::new(self.connection.clone(), path.clone()))
-            })
-            .collect()
+    pub async fn known_networks(&self) -> zbus::Result<Vec<KnownNetwork>> {
+        self.collect_interface().await
     }
 }

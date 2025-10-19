@@ -1,21 +1,21 @@
-use std::{future::Future, str::FromStr, sync::Arc};
+use std::{future::Future, str::FromStr};
 
 use strum::EnumString;
 use zbus::{Connection, Proxy, interface};
 use zvariant::OwnedObjectPath;
 
-use crate::{error::agent::Canceled, network::Network};
+use crate::{error::agent::Canceled, iwd_interface::IwdInterface, network::Network};
 
 // AgentManager
 
 #[derive(Debug, Clone)]
 pub struct AgentManager {
-    pub(crate) connection: Arc<Connection>,
+    pub(crate) connection: Connection,
     pub(crate) dbus_path: OwnedObjectPath,
 }
 
 impl AgentManager {
-    pub(crate) fn new(connection: Arc<Connection>, dbus_path: OwnedObjectPath) -> Self {
+    pub(crate) fn new(connection: Connection, dbus_path: OwnedObjectPath) -> Self {
         Self {
             connection,
             dbus_path,
@@ -104,16 +104,7 @@ pub trait Agent: Send + Sync + 'static {
 
 struct AgentInterface<A> {
     agent: A,
-    connection: Arc<Connection>,
-}
-
-impl<A> AgentInterface<A> {
-    fn get_network(&self, network_path: OwnedObjectPath) -> Network {
-        Network {
-            connection: self.connection.clone(),
-            dbus_path: network_path,
-        }
-    }
+    connection: Connection,
 }
 
 #[interface(name = "net.connman.iwd.Agent")]
@@ -125,7 +116,8 @@ impl<A: Agent> AgentInterface<A> {
 
     #[zbus(name = "RequestPassphrase")]
     async fn request_passphrase(&self, network_path: OwnedObjectPath) -> zbus::fdo::Result<String> {
-        let network = self.get_network(network_path);
+        let network = Network::new(self.connection.clone(), network_path).await?;
+
         Ok(self.agent.request_passphrase(&network).await?)
     }
 
@@ -134,7 +126,7 @@ impl<A: Agent> AgentInterface<A> {
         &self,
         network_path: OwnedObjectPath,
     ) -> zbus::fdo::Result<String> {
-        let network = self.get_network(network_path);
+        let network = Network::new(self.connection.clone(), network_path).await?;
         Ok(self.agent.request_private_key_passphrase(&network).await?)
     }
 
@@ -143,7 +135,7 @@ impl<A: Agent> AgentInterface<A> {
         &self,
         network_path: OwnedObjectPath,
     ) -> zbus::fdo::Result<(String, String)> {
-        let network = self.get_network(network_path);
+        let network = Network::new(self.connection.clone(), network_path).await?;
         Ok(self
             .agent
             .request_user_name_and_passphrase(&network)
@@ -156,7 +148,7 @@ impl<A: Agent> AgentInterface<A> {
         network_path: OwnedObjectPath,
         user_name: zvariant::Optional<String>,
     ) -> zbus::fdo::Result<(String, String)> {
-        let network = self.get_network(network_path);
+        let network = Network::new(self.connection.clone(), network_path).await?;
         let user_name = user_name.as_ref();
         Ok(self
             .agent

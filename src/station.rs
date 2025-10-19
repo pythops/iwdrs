@@ -1,6 +1,6 @@
-use std::{cmp::Reverse, collections::HashMap, str::FromStr, sync::Arc};
+use std::{cmp::Reverse, collections::HashMap, str::FromStr};
 
-use futures_lite::{Stream, StreamExt};
+use futures_lite::{Stream, StreamExt, stream};
 use strum::EnumString;
 use zvariant::{OwnedObjectPath, OwnedValue, Value};
 
@@ -11,57 +11,28 @@ use crate::{
         Result as IWDResult,
         station::{DisconnectError, ScanError},
     },
+    iwd_interface::{IwdInterface, iwd_interface_impl},
     network::Network,
 };
 
 use signal_level_agent::SignalLevelAgentManager;
 pub mod signal_level_agent;
 
-#[derive(Debug, Clone)]
-pub struct Station {
-    pub(crate) connection: Arc<Connection>,
-    pub(crate) dbus_path: OwnedObjectPath,
-}
-
-#[derive(Debug, Clone)]
-pub struct StationDiagnostics {
-    pub(crate) connection: Arc<Connection>,
-    pub(crate) dbus_path: OwnedObjectPath,
-}
+iwd_interface_impl!(Station, "net.connman.iwd.Station");
 
 impl Station {
-    pub(crate) fn new(connection: Arc<Connection>, dbus_path: OwnedObjectPath) -> Self {
-        Self {
-            connection,
-            dbus_path,
-        }
-    }
-
-    pub(crate) async fn proxy<'a>(&self) -> Result<zbus::Proxy<'a>, zbus::Error> {
-        Proxy::new(
-            &self.connection,
-            "net.connman.iwd",
-            self.dbus_path.clone(),
-            "net.connman.iwd.Station",
-        )
-        .await
-    }
-
     pub async fn is_scanning(&self) -> zbus::Result<bool> {
-        let proxy = self.proxy().await?;
-        let is_scanning: bool = proxy.get_property("Scanning").await?;
+        let is_scanning: bool = self.proxy.get_property("Scanning").await?;
         Ok(is_scanning)
     }
 
     pub async fn wait_for_scan_complete(&self) -> zbus::Result<()> {
-        let proxy = self.proxy().await?;
-        let _ = crate::property_stream::<bool>(proxy, "Scanning")
+        let _ = crate::property_stream::<bool>(self.proxy.clone(), "Scanning")
             .await?
             .skip_while(|scanning| scanning.as_ref().is_ok_and(|scanning| *scanning))
             .next()
             .await
-            .ok_or_else(|| zbus::Error::InvalidReply)
-            .flatten()?;
+            .ok_or_else(|| zbus::Error::InvalidReply)??;
         Ok(())
     }
 
@@ -76,47 +47,46 @@ impl Station {
     pub async fn state_stream(
         &self,
     ) -> zbus::Result<impl Stream<Item = zbus::Result<State>> + Unpin + 'static> {
-        let proxy = self.proxy().await?;
-        crate::property_stream(proxy, "State").await
+        crate::property_stream(self.proxy.clone(), "State").await
     }
 
     pub async fn connected_network(&self) -> zbus::Result<Option<Network>> {
         let state = self.state().await?;
         if matches!(state, State::Connected) {
-            let proxy = self.proxy().await?;
-            let network_path: OwnedObjectPath = proxy.get_property("ConnectedNetwork").await?;
-            let network = Network::new(self.connection.clone(), network_path);
+            let network_path: OwnedObjectPath = self.proxy.get_property("ConnectedNetwork").await?;
+            let network = Network::new(self.proxy.connection().clone(), network_path).await?;
             return Ok(Some(network));
         }
         Ok(None)
     }
 
     pub async fn scan(&self) -> IWDResult<(), ScanError> {
-        let proxy = self.proxy().await?;
-        proxy.call_method("Scan", &()).await?;
+        self.proxy.call_method("Scan", &()).await?;
         Ok(())
     }
 
     pub async fn disconnect(&self) -> IWDResult<(), DisconnectError> {
-        let proxy = self.proxy().await?;
-        proxy.call_method("Disconnect", &()).await?;
+        self.proxy.call_method("Disconnect", &()).await?;
         Ok(())
     }
 
     pub async fn discovered_networks(&self) -> zbus::Result<Vec<(Network, i16)>> {
-        let proxy = self.proxy().await?;
-        let networks = proxy.call_method("GetOrderedNetworks", &()).await?;
+        let networks = self.proxy.call_method("GetOrderedNetworks", &()).await?;
 
         let body = networks.body();
         let objects: Vec<(OwnedObjectPath, i16)> = body.deserialize()?;
 
-        let networks: Vec<(Network, i16)> = objects
-            .iter()
-            .map(|(path, signal_strength)| {
-                let network = Network::new(self.connection.clone(), path.clone());
-                (network, signal_strength.to_owned())
+        let connection = self.proxy.connection().clone();
+        let networks = stream::iter(objects)
+            .then(|(path, signal_strength)| {
+                let connection = connection.clone();
+                async move {
+                    let network = Network::new(connection, path.clone()).await?;
+                    Ok::<_, zbus::Error>((network, signal_strength.to_owned()))
+                }
             })
-            .collect();
+            .try_collect()
+            .await?;
 
         Ok(networks)
     }
@@ -137,41 +107,24 @@ impl Station {
 
         let interface = signal_level_agent::SignalLevelInterface {
             agent,
-            connection: self.connection.clone(),
+            connection: self.proxy.connection().clone(),
             levels: levels.clone(),
         };
 
         let manager = SignalLevelAgentManager::register_agent(self.clone(), interface).await?;
 
-        let proxy = self.proxy().await?;
-        proxy
+        self.proxy
             .call_method("RegisterSignalLevelAgent", &(&manager.dbus_path, levels))
             .await?;
         Ok(manager)
     }
 }
 
+iwd_interface_impl!(StationDiagnostics, "net.connman.iwd.StationDiagnostic");
+
 impl StationDiagnostics {
-    pub(crate) fn new(connection: Arc<Connection>, dbus_path: OwnedObjectPath) -> Self {
-        Self {
-            connection,
-            dbus_path,
-        }
-    }
-
-    pub(crate) async fn proxy<'a>(&self) -> zbus::Result<zbus::Proxy<'a>> {
-        Proxy::new(
-            &self.connection,
-            "net.connman.iwd",
-            self.dbus_path.clone(),
-            "net.connman.iwd.StationDiagnostic",
-        )
-        .await
-    }
-
     pub async fn get(&self) -> zbus::Result<HashMap<String, String>> {
-        let proxy = self.proxy().await?;
-        let diagnostic = proxy.call_method("GetDiagnostics", &()).await?;
+        let diagnostic = self.proxy.call_method("GetDiagnostics", &()).await?;
 
         let body = diagnostic.body();
         let body: HashMap<String, Value> = body.deserialize()?;

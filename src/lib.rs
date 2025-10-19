@@ -22,6 +22,8 @@ pub mod modes;
 
 pub mod error;
 
+mod iwd_interface;
+
 async fn property_stream<T: TryFrom<OwnedValue, Error = zvariant::Error> + Unpin>(
     proxy: Proxy<'static>,
     property_name: &'static str,
