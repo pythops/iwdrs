@@ -10,9 +10,9 @@ pub type Result<T, E> = std::result::Result<T, IWDError<E>>;
 
 #[derive(Debug, Error)]
 pub enum IWDError<T: std::str::FromStr + std::error::Error> {
-    #[error("IWD threw an error")]
+    #[error("IWD Error: {0}")]
     OperationError(T),
-    #[error("Dbus error when executing IWD operation")]
+    #[error("Dbus error when executing IWD operation: {0}")]
     ZbusError(zbus::Error),
 }
 
