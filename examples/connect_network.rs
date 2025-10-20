@@ -19,7 +19,7 @@ async fn main() {
     let agent = PasswdAgent(password);
     let _agent_manager = session.register_agent(agent).await.unwrap();
 
-    let station = session.stations().pop().unwrap();
+    let station = session.stations().await.unwrap().pop().unwrap();
     let mut networks = station.discovered_networks().await.unwrap();
 
     let network = match find_network(&ssid, &networks).await {

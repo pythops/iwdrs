@@ -1,13 +1,10 @@
-use std::{
-    ops::{Bound, RangeBounds},
-    sync::Arc,
-};
+use std::ops::{Bound, RangeBounds};
 
 use uuid::Uuid;
 use zbus::{Connection, interface};
 use zvariant::OwnedObjectPath;
 
-use crate::station::Station;
+use crate::{iwd_interface::IwdInterface, station::Station};
 
 pub trait SignalLevelAgent: Send + Sync + 'static {
     /// This method gets called when the service daemon unregisters the agent. An agent can use it to do
@@ -20,7 +17,7 @@ pub trait SignalLevelAgent: Send + Sync + 'static {
 
 pub struct SignalLevelInterface<A> {
     pub(super) agent: A,
-    pub(super) connection: Arc<Connection>,
+    pub(super) connection: Connection,
     pub(super) levels: Vec<i16>,
 }
 
@@ -40,11 +37,8 @@ impl<A: SignalLevelAgent> SignalLevelInterface<A> {
     /// is received at -40 or more dBm and 3 would mean below -60 dBm and might correspond to 1 out of 4 bars on a UI
     /// signal meter.
     #[zbus(name = "Changed")]
-    fn changed(&self, station_path: OwnedObjectPath, level_idx: u8) {
-        let station = Station {
-            connection: self.connection.clone(),
-            dbus_path: station_path,
-        };
+    async fn changed(&self, station_path: OwnedObjectPath, level_idx: u8) -> zbus::fdo::Result<()> {
+        let station = Station::new(self.connection.clone(), station_path).await?;
 
         let level_idx = usize::from(level_idx);
 
@@ -59,7 +53,8 @@ impl<A: SignalLevelAgent> SignalLevelInterface<A> {
             .map(|level| Bound::Included(*level))
             .unwrap_or(Bound::Unbounded);
 
-        self.agent.changed(&station, (min_strength, max_strength))
+        self.agent.changed(&station, (min_strength, max_strength));
+        Ok(())
     }
 }
 
@@ -78,7 +73,8 @@ impl SignalLevelAgentManager {
             Uuid::new_v4().as_simple()
         ))?;
         station
-            .connection
+            .proxy
+            .connection()
             .object_server()
             .at(dbus_path.clone(), interface)
             .await?;
@@ -87,9 +83,8 @@ impl SignalLevelAgentManager {
     }
 
     pub async fn unregister(self) -> zbus::Result<()> {
-        let proxy = self.station.proxy().await?;
-
-        proxy
+        self.station
+            .proxy
             .call_method("UnregisterSignalLevelAgent", &(&self.dbus_path,))
             .await?;
         Ok(())

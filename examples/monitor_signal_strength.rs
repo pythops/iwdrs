@@ -14,7 +14,7 @@ async fn main() {
 
     let session = iwdrs::session::Session::new().await.unwrap();
 
-    let station = session.stations().pop().unwrap();
+    let station = session.stations().await.unwrap().pop().unwrap();
 
     station
         .register_signal_level_agent(levels, Agent {})
