@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use futures_lite::{Stream, StreamExt};
+use futures_lite::Stream;
 use strum::EnumString;
 use zbus::{Connection, Proxy, Result as ZbusResult};
 use zvariant::{OwnedObjectPath, OwnedValue};
@@ -29,17 +29,13 @@ impl Network {
     }
 
     pub async fn connected(&self) -> ZbusResult<bool> {
-        self.connected_stream()
-            .await?
-            .next()
-            .await
-            .ok_or_else(|| zbus::Error::Unsupported)?
+        self.proxy.get_property("Connected").await
     }
 
     pub async fn connected_stream(
         &self,
-    ) -> zbus::Result<impl Stream<Item = zbus::Result<bool>> + Unpin> {
-        crate::property_stream(self.proxy.clone(), "Connected").await
+    ) -> zbus::Result<impl Stream<Item = zbus::Result<bool>> + Unpin + 'static> {
+        crate::property_stream(self.proxy.clone(), self.connected().await, "Connected").await
     }
 
     pub async fn device(&self) -> ZbusResult<Device> {

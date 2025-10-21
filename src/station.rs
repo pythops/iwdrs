@@ -27,27 +27,27 @@ impl Station {
     }
 
     pub async fn wait_for_scan_complete(&self) -> zbus::Result<()> {
-        let _ = crate::property_stream::<bool>(self.proxy.clone(), "Scanning")
-            .await?
-            .skip_while(|scanning| scanning.as_ref().is_ok_and(|scanning| *scanning))
-            .next()
-            .await
-            .ok_or_else(|| zbus::Error::InvalidReply)??;
+        let _ = crate::property_stream::<bool>(
+            self.proxy.clone(),
+            self.is_scanning().await,
+            "Scanning",
+        )
+        .await?
+        .skip_while(|scanning| scanning.as_ref().is_ok_and(|scanning| *scanning))
+        .next()
+        .await
+        .ok_or_else(|| zbus::Error::InvalidReply)??;
         Ok(())
     }
 
     pub async fn state(&self) -> zbus::Result<State> {
-        self.state_stream()
-            .await?
-            .next()
-            .await
-            .ok_or_else(|| zbus::Error::Unsupported)?
+        self.proxy.get_property("State").await
     }
 
     pub async fn state_stream(
         &self,
     ) -> zbus::Result<impl Stream<Item = zbus::Result<State>> + Unpin + 'static> {
-        crate::property_stream(self.proxy.clone(), "State").await
+        crate::property_stream(self.proxy.clone(), self.state().await, "State").await
     }
 
     pub async fn connected_network(&self) -> zbus::Result<Option<Network>> {
