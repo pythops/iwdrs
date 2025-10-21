@@ -7,6 +7,7 @@ use thiserror::Error;
 pub enum ScanError {
     #[strum(
         serialize = "net.connman.iwd.Busy",
+        serialize = "net.connman.iwd.InProgress",
         message = "InProgress",
         detailed_message = "Operation already in progress"
     )]
