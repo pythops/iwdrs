@@ -9,13 +9,14 @@ use zbus::{Connection, Proxy};
 use crate::{
     error::{
         Result as IWDResult,
-        station::{DisconnectError, ScanError},
+        station::{DisconnectError, ScanError, StationDiagnosticsError},
     },
     iwd_interface::{IwdInterface, iwd_interface_impl},
     network::Network,
 };
 
 use signal_level_agent::SignalLevelAgentManager;
+pub mod diagnostics;
 pub mod signal_level_agent;
 
 iwd_interface_impl!(Station, "net.connman.iwd.Station");
@@ -93,9 +94,9 @@ impl Station {
 
     /// Register the agent object to receive signal strength level change notifications on the provided agent.
     /// The "levels" parameters decides the thresholds in dBm that will generate a call to the
-    /// [`SignalLevelAgent::changed`] method whenever current RSSI crosses any of the values.  The number and distance between
-    /// requested threshold values is a compromise between resolution and the frequency of system wakeups and
-    /// context-switches that are going to be occurring to update the client's signal meter.  Only one agent
+    /// [`crate::station::signal_level_agent::SignalLevelAgent::changed`] method whenever current RSSI crosses any of the values.
+    /// The number and distance between requested threshold values is a compromise between resolution and the frequency of system
+    /// wakeups and context-switches that are going to be occurring to update the client's signal meter.  Only one agent
     /// can be registered at any time.
     pub async fn register_signal_level_agent(
         &self,
@@ -123,23 +124,15 @@ impl Station {
 iwd_interface_impl!(StationDiagnostics, "net.connman.iwd.StationDiagnostic");
 
 impl StationDiagnostics {
-    pub async fn get(&self) -> zbus::Result<HashMap<String, String>> {
+    pub async fn get(
+        &self,
+    ) -> IWDResult<diagnostics::ActiveStationDiagnostics, StationDiagnosticsError> {
         let diagnostic = self.proxy.call_method("GetDiagnostics", &()).await?;
 
         let body = diagnostic.body();
         let body: HashMap<String, Value> = body.deserialize()?;
-        let body = body
-            .into_iter()
-            .map(|(k, v)| match k.as_str() {
-                "Frequency" => {
-                    let v: u32 = v.try_into().unwrap();
-                    (k, v.to_string())
-                }
-                _ => (k, v.to_string()),
-            })
-            .collect::<HashMap<String, String>>();
 
-        Ok(body)
+        Ok(diagnostics::ActiveStationDiagnostics::from_zbus_map(body)?)
     }
 }
 
