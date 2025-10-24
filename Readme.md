@@ -18,7 +18,7 @@ Add the following to your `cargo.toml`
 
 ```
 [dependencies]
-iwdrs = 0.1
+iwdrs = 0.2
 ```
 
 ## TODO
