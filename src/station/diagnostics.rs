@@ -3,7 +3,7 @@ use std::{collections::HashMap, str::FromStr, time::Duration};
 use strum::EnumString;
 use zvariant::Value;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ActiveStationDiagnostics {
     pub connected_bss: String,
     pub frequency_mhz: u32,
@@ -84,7 +84,7 @@ macro_rules! enum_from_zbus_string_value {
     };
 }
 
-#[derive(Debug, EnumString)]
+#[derive(Debug, EnumString, strum::Display, Clone)]
 pub enum StationSecurity {
     // Options from
     // https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/src/diagnostic.c#n124
@@ -116,7 +116,7 @@ pub enum StationSecurity {
 
 enum_from_zbus_string_value!(StationSecurity);
 
-#[derive(Debug, EnumString)]
+#[derive(Debug, EnumString, strum::Display, Clone)]
 pub enum Mode {
     #[strum(serialize = "802.11n")]
     N,
@@ -128,7 +128,7 @@ pub enum Mode {
 
 enum_from_zbus_string_value!(Mode);
 
-#[derive(Debug, EnumString)]
+#[derive(Debug, EnumString, strum::Display, Clone)]
 pub enum PairwiseCipher {
     #[strum(serialize = "TKIP")]
     Tkip,

@@ -62,7 +62,7 @@ impl Network {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, EnumString)]
+#[derive(Debug, Clone, Copy, PartialEq, EnumString, strum::Display)]
 #[strum(ascii_case_insensitive)]
 pub enum NetworkType {
     Open,

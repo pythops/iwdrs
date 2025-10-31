@@ -18,10 +18,10 @@ zbus = { version = "5", default-features = false }
 zvariant = "5"
 uuid = { version = "1", features = ["v4"] }
 thiserror = "2.0.17"
-strum = {version = "0.27.2", features = ["derive"]}
+strum = { version = "0.27.2", features = ["derive"] }
 futures-lite = "2.6.1"
 
 [dev-dependencies]
-clap = {version = "4.5.48", features = ["derive"]}
-tokio = {version = "1.47.1", features = ["rt", "macros"]}
-zbus = {version = "5", features = ["tokio"]}
+clap = { version = "4.5.48", features = ["derive"] }
+tokio = { version = "1.47.1", features = ["rt", "macros"] }
+zbus = { version = "5", features = ["tokio"] }
