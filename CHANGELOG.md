@@ -1,3 +1,7 @@
+### 0.2.2 - 2025-11-01
+
+- Add `daemon` api
+
 ### v0.2.1 - 2025-10-31
 
 - Add `Clone` and `Display` derive for some types.
