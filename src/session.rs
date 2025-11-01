@@ -2,8 +2,9 @@ use crate::{
     access_point::{AccessPoint, AccessPointDiagnostics},
     adapter::Adapter,
     agent::{Agent, AgentManager},
+    daemon::Daemon,
     device::Device,
-    iwd_interface,
+    iwd_interface::{self, IwdInterface},
     known_network::KnownNetwork,
     station::{Station, StationDiagnostics},
 };
@@ -64,6 +65,11 @@ impl Session {
 
     pub async fn adapters(&self) -> zbus::Result<Vec<Adapter>> {
         self.collect_interface().await
+    }
+
+    pub async fn daemon(&self) -> zbus::Result<Daemon> {
+        let path = OwnedObjectPath::try_from("/net/connman/iwd")?;
+        Daemon::new(self.connection.clone(), path).await
     }
 
     pub async fn devices(&self) -> zbus::Result<Vec<Device>> {

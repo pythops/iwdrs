@@ -4,6 +4,7 @@
 
 - [adapter](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc/adapter-api.txt)
 - [agent](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc/agent-api.txt)
+- [daemon](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc/daemon-api.txt)
 - [device](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc/device-api.txt)
 - [knownnetwork](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc/knownnetwork-api.txt)
 - [network](https://git.kernel.org/pub/scm/network/wireless/iwd.git/tree/doc/network-api.txt)
