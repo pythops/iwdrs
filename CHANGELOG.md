@@ -1,4 +1,8 @@
-### 0.2.2 - 2025-11-01
+### v0.2.3 - 2025-11-07
+
+- Fix Agent trait method `request_user_password` return type
+
+### v0.2.2 - 2025-11-01
 
 - Add `daemon` api
 
