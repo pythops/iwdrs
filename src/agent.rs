@@ -96,7 +96,7 @@ pub trait Agent: Send + Sync + 'static {
         &self,
         network: &Network,
         user_name: Option<&String>,
-    ) -> impl Future<Output = Result<(String, String), Canceled>> + Send;
+    ) -> impl Future<Output = Result<String, Canceled>> + Send;
 
     /// This method gets called to indicate that the agent request failed before a reply was returned.
     fn cancel(&self, _reason: CancellationReason) {}
@@ -147,7 +147,7 @@ impl<A: Agent> AgentInterface<A> {
         &self,
         network_path: OwnedObjectPath,
         user_name: zvariant::Optional<String>,
-    ) -> zbus::fdo::Result<(String, String)> {
+    ) -> zbus::fdo::Result<String> {
         let network = Network::new(self.connection.clone(), network_path).await?;
         let user_name = user_name.as_ref();
         Ok(self

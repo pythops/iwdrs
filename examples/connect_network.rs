@@ -79,7 +79,7 @@ impl Agent for PasswdAgent {
         &self,
         _network: &Network,
         _user_name: Option<&String>,
-    ) -> impl Future<Output = Result<(String, String), iwdrs::error::agent::Canceled>> + Send {
+    ) -> impl Future<Output = Result<String, iwdrs::error::agent::Canceled>> + Send {
         std::future::ready(Err(iwdrs::error::agent::Canceled {}))
     }
 }
