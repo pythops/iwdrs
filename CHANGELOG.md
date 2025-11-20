@@ -1,3 +1,7 @@
+### v0.2.4 - 2025-11-20
+
+- Make the field `Channel` in station diagnostic optional
+
 ### v0.2.3 - 2025-11-07
 
 - Fix Agent trait method `request_user_password` return type
