@@ -7,7 +7,7 @@ use zvariant::Value;
 pub struct ActiveStationDiagnostics {
     pub connected_bss: String,
     pub frequency_mhz: u32,
-    pub channel: u16,
+    pub channel: Option<u16>,
     pub security: StationSecurity,
     pub rssi: Option<i16>,
     pub average_rssi: Option<i16>,
@@ -42,10 +42,7 @@ impl ActiveStationDiagnostics {
                 .get("Frequency")
                 .ok_or(zbus::Error::MissingField)?
                 .try_into()?,
-            channel: body
-                .get("Channel")
-                .ok_or(zbus::Error::MissingField)?
-                .try_into()?,
+            channel: some_try_into!(body, "Channel"),
             security: body
                 .get("Security")
                 .ok_or(zbus::Error::MissingField)?
