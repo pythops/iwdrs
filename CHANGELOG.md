@@ -1,3 +1,7 @@
+### v0.2.5 - 2025-11-29
+
+- Add support for hidden networks
+
 ### v0.2.4 - 2025-11-20
 
 - Make the field `Channel` in station diagnostic optional
