@@ -9,10 +9,12 @@ use zbus::{Connection, Proxy};
 use crate::{
     error::{
         Result as IWDResult,
+        network::ConnectError,
         station::{DisconnectError, ScanError, StationDiagnosticsError},
     },
+    hidden_network::HiddenNetwork,
     iwd_interface::{IwdInterface, iwd_interface_impl},
-    network::Network,
+    network::{Network, NetworkType},
 };
 
 use signal_level_agent::SignalLevelAgentManager;
@@ -90,6 +92,29 @@ impl Station {
             .await?;
 
         Ok(networks)
+    }
+
+    pub async fn get_hidden_networks(&self) -> zbus::Result<Vec<HiddenNetwork>> {
+        let networks = self.proxy.call_method("GetHiddenAccessPoints", &()).await?;
+
+        let body = networks.body();
+        let networks: Vec<(String, i16, String)> = body.deserialize()?;
+
+        Ok(networks
+            .into_iter()
+            .map(|(address, signal_strength, network_type)| HiddenNetwork {
+                address,
+                signal_strength,
+                network_type: NetworkType::from_str(&network_type).unwrap(),
+            })
+            .collect())
+    }
+
+    pub async fn connect_hidden_network(&self, ssid: String) -> IWDResult<(), ConnectError> {
+        self.proxy
+            .call_method("ConnectHiddenNetwork", &(ssid))
+            .await?;
+        Ok(())
     }
 
     /// Register the agent object to receive signal strength level change notifications on the provided agent.

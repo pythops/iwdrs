@@ -8,6 +8,7 @@ pub mod agent;
 pub mod daemon;
 pub mod device;
 pub mod error;
+pub mod hidden_network;
 mod iwd_interface;
 pub mod known_network;
 pub mod modes;
