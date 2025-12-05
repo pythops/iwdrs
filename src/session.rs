@@ -8,7 +8,6 @@ use crate::{
     known_network::KnownNetwork,
     station::{Station, StationDiagnostics},
 };
-use futures_lite::{StreamExt, stream};
 use std::collections::HashMap;
 use uuid::Uuid;
 use zbus::{Connection, Proxy};
@@ -57,10 +56,12 @@ impl Session {
     async fn collect_interface<Output: iwd_interface::IwdInterface>(
         &self,
     ) -> zbus::Result<Vec<Output>> {
-        stream::iter(self.object_type(Output::INTERFACE))
-            .then(|path| async move { Output::new(self.connection.clone(), path).await })
-            .try_collect()
-            .await
+        let paths: Vec<_> = self.object_type(Output::INTERFACE).into_iter().collect();
+        let mut results = Vec::with_capacity(paths.len());
+        for path in paths {
+            results.push(Output::new(self.connection.clone(), path).await?);
+        }
+        Ok(results)
     }
 
     pub async fn adapters(&self) -> zbus::Result<Vec<Adapter>> {
