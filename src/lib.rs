@@ -12,6 +12,7 @@ pub mod hidden_network;
 mod iwd_interface;
 pub mod known_network;
 pub mod modes;
+pub(crate) mod monitor;
 pub mod network;
 pub mod session;
 pub mod station;

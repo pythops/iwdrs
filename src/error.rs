@@ -3,6 +3,7 @@ use thiserror::Error;
 
 pub mod access_point;
 pub mod agent;
+pub mod monitor;
 pub mod network;
 pub mod station;
 
@@ -25,11 +26,9 @@ impl<T: std::str::FromStr<Err = strum::ParseError> + std::error::Error + EnumMes
         };
         match T::from_str(error_name.as_str()) {
             Ok(error) => {
-                debug_assert!(
-                    _error_description
-                        .as_ref()
-                        .is_some_and(|err| err.as_str() == error.get_detailed_message().unwrap())
-                );
+                debug_assert!(_error_description
+                    .as_ref()
+                    .is_some_and(|err| err.as_str() == error.get_detailed_message().unwrap()));
 
                 Self::OperationError(error)
             }
