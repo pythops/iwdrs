@@ -8,58 +8,41 @@ use crate::{
     known_network::KnownNetwork,
     station::{Station, StationDiagnostics},
 };
-use std::collections::HashMap;
 use uuid::Uuid;
-use zbus::{Connection, Proxy};
-use zvariant::{OwnedObjectPath, OwnedValue};
+use zbus::{
+    fdo::ObjectManagerProxy,
+    Connection,
+};
+use zvariant::OwnedObjectPath;
 
 #[derive(Debug)]
 pub struct Session {
     connection: Connection,
-    pub(crate) objects: HashMap<OwnedObjectPath, HashMap<String, HashMap<String, OwnedValue>>>,
+    object_manager: ObjectManagerProxy<'static>,
 }
 
 impl Session {
     pub async fn new() -> zbus::Result<Self> {
         let connection = Connection::system().await?;
 
-        let proxy = Proxy::new(
-            &connection,
-            "net.connman.iwd",
-            "/",
-            "org.freedesktop.DBus.ObjectManager",
-        )
-        .await?;
-
-        let objects: HashMap<OwnedObjectPath, HashMap<String, HashMap<String, OwnedValue>>> =
-            proxy.call("GetManagedObjects", &()).await?;
+        let object_manager =
+            ObjectManagerProxy::new(&connection, "net.connman.iwd", "/").await?;
 
         Ok(Self {
             connection,
-            objects,
-        })
-    }
-
-    fn object_type(
-        &self,
-        interface_type: &'static str,
-    ) -> impl IntoIterator<Item = OwnedObjectPath> {
-        self.objects.iter().flat_map(move |(path, interfaces)| {
-            let path = path.clone();
-            interfaces
-                .iter()
-                .filter(move |(interface, _)| interface.as_str() == interface_type)
-                .map(move |_| path.clone())
+            object_manager,
         })
     }
 
     async fn collect_interface<Output: iwd_interface::IwdInterface>(
         &self,
     ) -> zbus::Result<Vec<Output>> {
-        let paths: Vec<_> = self.object_type(Output::INTERFACE).into_iter().collect();
-        let mut results = Vec::with_capacity(paths.len());
-        for path in paths {
-            results.push(Output::new(self.connection.clone(), path).await?);
+        let objects = self.object_manager.get_managed_objects().await?;
+        let mut results = Vec::new();
+        for (path, interfaces) in objects {
+            if interfaces.contains_key(Output::INTERFACE) {
+                results.push(Output::new(self.connection.clone(), path).await?);
+            }
         }
         Ok(results)
     }
