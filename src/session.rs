@@ -8,55 +8,58 @@ use crate::{
     known_network::KnownNetwork,
     station::{Station, StationDiagnostics},
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, future};
+use futures_lite::{StreamExt, FutureExt};
 use uuid::Uuid;
-use zbus::{Connection, Proxy};
+use zbus::{Connection, Proxy, fdo::{InterfacesAddedArgs, InterfacesAddedStream, InterfacesRemovedStream, ObjectManagerProxy}, names::OwnedInterfaceName};
 use zvariant::{OwnedObjectPath, OwnedValue};
+
+type OwnedPropertiesMap =  HashMap<String, OwnedValue>;
+type OwnedInterfaceMap = HashMap<OwnedInterfaceName,OwnedPropertiesMap>;
 
 #[derive(Debug)]
 pub struct Session {
     connection: Connection,
-    pub(crate) objects: HashMap<OwnedObjectPath, HashMap<String, HashMap<String, OwnedValue>>>,
+    _object_manager: ObjectManagerProxy<'static>,
+    cache: async_lock::Mutex<ObjectCache>
 }
 
 impl Session {
     pub async fn new() -> zbus::Result<Self> {
         let connection = Connection::system().await?;
 
-        let proxy = Proxy::new(
-            &connection,
+        let proxy = Proxy::new_owned(
+            connection.clone(),
             "net.connman.iwd",
             "/",
             "org.freedesktop.DBus.ObjectManager",
         )
         .await?;
+        let object_manager = ObjectManagerProxy::from(proxy);
 
-        let objects: HashMap<OwnedObjectPath, HashMap<String, HashMap<String, OwnedValue>>> =
-            proxy.call("GetManagedObjects", &()).await?;
+        let objects:  HashMap<OwnedObjectPath, OwnedInterfaceMap> =
+            object_manager.get_managed_objects().await?;
+        let interfaces_added = object_manager.receive_interfaces_added().await?;
+        let interfaces_removed = object_manager.receive_interfaces_removed().await?;
 
         Ok(Self {
             connection,
-            objects,
-        })
-    }
-
-    fn object_type(
-        &self,
-        interface_type: &'static str,
-    ) -> impl IntoIterator<Item = OwnedObjectPath> {
-        self.objects.iter().flat_map(move |(path, interfaces)| {
-            let path = path.clone();
-            interfaces
-                .iter()
-                .filter(move |(interface, _)| interface.as_str() == interface_type)
-                .map(move |_| path.clone())
+            _object_manager: object_manager,
+            cache: async_lock::Mutex::new(ObjectCache {
+                interfaces_added,
+                interfaces_removed,
+                objects,
+            }),
         })
     }
 
     async fn collect_interface<Output: iwd_interface::IwdInterface>(
         &self,
     ) -> zbus::Result<Vec<Output>> {
-        let paths: Vec<_> = self.object_type(Output::INTERFACE).into_iter().collect();
+        let mut cache = self.cache.lock().await;
+        cache.update_objects_cache().await?;
+
+        let paths: Vec<_> = cache.object_type(Output::INTERFACE).into_iter().collect();
         let mut results = Vec::with_capacity(paths.len());
         for path in paths {
             results.push(Output::new(self.connection.clone(), path).await?);
@@ -104,5 +107,54 @@ impl Session {
 
     pub async fn known_networks(&self) -> zbus::Result<Vec<KnownNetwork>> {
         self.collect_interface().await
+    }
+}
+
+#[derive(Debug)]
+struct ObjectCache {
+    interfaces_added: InterfacesAddedStream,
+    interfaces_removed: InterfacesRemovedStream,
+    objects: HashMap<OwnedObjectPath, OwnedInterfaceMap>,
+}
+
+impl ObjectCache {
+    fn object_type(
+        &self,
+        interface_type: &'static str,
+    ) -> impl IntoIterator<Item = OwnedObjectPath> {
+        self.objects.iter().flat_map(move |(path, interfaces)| {
+            let path = path.clone();
+            interfaces
+                .iter()
+                .filter(move |(interface, _)| interface.as_str() == interface_type)
+                .map(move |_| path.clone())
+        })
+    }
+
+    async fn update_objects_cache(&mut self) -> zbus::Result<()>{
+        while let Some(removal) = self.interfaces_removed.next().or(future::ready(None)).await {
+            let args = removal.args()?;
+            self.objects.remove(args.object_path());
+        }
+
+        while let Some(added) = self.interfaces_added.next().or(future::ready(None)).await {
+            let args = added.args()?;
+            let InterfacesAddedArgs { object_path, interfaces_and_properties, .. } = args;
+            let object_path: OwnedObjectPath = object_path.into_owned().into();
+            let interfaces_and_properties: OwnedInterfaceMap = interfaces_and_properties.into_iter().map(|(iface, props)| {
+                let iface = iface.into_owned().into();
+                let props: OwnedPropertiesMap = props.into_iter().filter_map(|(key, val)| {
+                    let Ok(val) = val.try_into_owned() else {
+                        return None
+                    };
+                    Some((key.to_string(), val))
+                }).collect();
+                (iface, props)
+            }).collect();
+            self.objects.insert(object_path, interfaces_and_properties);
+        }
+
+
+        Ok(())
     }
 }
