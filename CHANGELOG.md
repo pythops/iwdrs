@@ -1,3 +1,8 @@
+### v0.2.7 - 2026-04-30
+
+- Bump dependencies
+- Add Signal based cache updating for session
+
 ### v0.2.6 - 2025-12-09
 
 - Results of `collect_interface` (`session::Session::{adapters, devices, stations, stations_diagnostics,access_points, access_points_diagnostics, known_networks }`) are now iterable inside a future.
