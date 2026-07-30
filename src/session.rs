@@ -140,7 +140,12 @@ impl ObjectCache {
     async fn update_objects_cache(&mut self) -> zbus::Result<()> {
         while let Some(removal) = self.interfaces_removed.next().or(future::ready(None)).await {
             let args = removal.args()?;
-            self.objects.remove(args.object_path());
+            if let Some(interfaces) = self.objects.get_mut(args.object_path()) {
+                interfaces.retain(|name, _| !args.interfaces().contains(name));
+                if interfaces.is_empty() {
+                    self.objects.remove(args.object_path());
+                }
+            }
         }
 
         while let Some(added) = self.interfaces_added.next().or(future::ready(None)).await {
@@ -167,7 +172,10 @@ impl ObjectCache {
                     (iface, props)
                 })
                 .collect();
-            self.objects.insert(object_path, interfaces_and_properties);
+            self.objects
+                .entry(object_path)
+                .or_default()
+                .extend(interfaces_and_properties);
         }
 
         Ok(())
