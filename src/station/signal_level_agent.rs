@@ -17,7 +17,6 @@ pub trait SignalLevelAgent: Send + Sync + 'static {
 
 pub struct SignalLevelInterface<A> {
     pub(super) agent: A,
-    pub(super) connection: Connection,
     pub(super) levels: Vec<i16>,
 }
 
@@ -37,8 +36,13 @@ impl<A: SignalLevelAgent> SignalLevelInterface<A> {
     /// is received at -40 or more dBm and 3 would mean below -60 dBm and might correspond to 1 out of 4 bars on a UI
     /// signal meter.
     #[zbus(name = "Changed")]
-    async fn changed(&self, station_path: OwnedObjectPath, level_idx: u8) -> zbus::fdo::Result<()> {
-        let station = Station::new(self.connection.clone(), station_path).await?;
+    async fn changed(
+        &self,
+        station_path: OwnedObjectPath,
+        level_idx: u8,
+        #[zbus(connection)] connection: &Connection,
+    ) -> zbus::fdo::Result<()> {
+        let station = Station::new(connection.clone(), station_path).await?;
 
         let level_idx = usize::from(level_idx);
 

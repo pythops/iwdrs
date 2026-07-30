@@ -123,26 +123,38 @@ impl Station {
     /// The number and distance between requested threshold values is a compromise between resolution and the frequency of system
     /// wakeups and context-switches that are going to be occurring to update the client's signal meter.  Only one agent
     /// can be registered at any time.
-    pub async fn register_signal_level_agent(
+    pub async fn register_signal_level_agent<A: signal_level_agent::SignalLevelAgent>(
         &self,
         mut levels: Vec<i16>,
-        agent: impl signal_level_agent::SignalLevelAgent,
+        agent: A,
     ) -> zbus::Result<SignalLevelAgentManager> {
         // Signal level boundaries should be sorted
         levels.sort_by_key(|signal_level| Reverse(*signal_level));
 
         let interface = signal_level_agent::SignalLevelInterface {
             agent,
-            connection: self.proxy.connection().clone(),
             levels: levels.clone(),
         };
 
         let manager = SignalLevelAgentManager::register_agent(self.clone(), interface).await?;
 
-        self.proxy
+        match self
+            .proxy
             .call_method("RegisterSignalLevelAgent", &(&manager.dbus_path, levels))
-            .await?;
-        Ok(manager)
+            .await
+        {
+            Ok(_) => Ok(manager),
+            Err(register_error) => {
+                // iwd rejected the registration, remove the served object again so it does not accumulate on the object server.
+                let _ = self
+                    .proxy
+                    .connection()
+                    .object_server()
+                    .remove::<signal_level_agent::SignalLevelInterface<A>, _>(&manager.dbus_path)
+                    .await;
+                Err(register_error)
+            }
+        }
     }
 }
 
