@@ -90,6 +90,10 @@ impl Session {
         self.collect_interface().await
     }
 
+    pub async fn station_at(&self, path: OwnedObjectPath) -> zbus::Result<Station> {
+        Station::new(self.connection.clone(), path).await
+    }
+
     pub async fn stations_diagnostics(&self) -> zbus::Result<Vec<StationDiagnostics>> {
         self.collect_interface().await
     }

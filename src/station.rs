@@ -2,7 +2,7 @@ use std::{cmp::Reverse, collections::HashMap, str::FromStr};
 
 use futures_lite::{Stream, StreamExt, stream};
 use strum::EnumString;
-use zvariant::{OwnedObjectPath, OwnedValue, Value};
+use zvariant::{ObjectPath, OwnedObjectPath, OwnedValue, Value};
 
 use zbus::{Connection, Proxy};
 
@@ -155,6 +155,10 @@ impl Station {
                 Err(register_error)
             }
         }
+    }
+
+    pub fn path(&self) -> &ObjectPath<'_> {
+        self.proxy.path()
     }
 }
 
